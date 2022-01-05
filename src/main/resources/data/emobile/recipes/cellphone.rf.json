@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " GD",
+    "GEG",
+    "RGR"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:gold_ingot"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "E": {
+      "item": "emobile:cellphone"
+    }
+  },
+  "result": {
+    "item": "emobile:cellphone.rf",
+    "count": 1
+  }
+}

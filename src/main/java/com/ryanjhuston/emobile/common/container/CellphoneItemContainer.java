@@ -11,6 +11,8 @@ import net.minecraftforge.items.SlotItemHandler;
 
 public class CellphoneItemContainer extends CellphoneBaseContainer {
 
+    public CellphoneItemStackHandler itemStackHandler;
+
     public static CellphoneItemContainer createContainerServerSide(int windowId, PlayerInventory playerInventory, final CellphoneItemStackHandler itemStackHandler, ItemStack item) {
         return new CellphoneItemContainer(windowId, playerInventory, itemStackHandler, item);
     }

@@ -12,11 +12,13 @@ public class EMobileItems {
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, EMobileMod.MODID);
 
-    public static final RegistryObject<Item> CELLPHONE = ITEMS.register("cellphone", () ->
-            new CellphonePearlItem(new Item.Properties()));
+    public static final RegistryObject<Item> CELLPHONE = ITEMS.register("cellphone",
+            () -> new CellphonePearlItem(new Item.Properties()
+                    .maxStackSize(1).group(EMobileItemGroup.EMOBILE_GROUP)));
 
-    public static final RegistryObject<Item> CELLPHONE_RF = ITEMS.register("cellphone.rf", () ->
-            new CellphoneRFItem(new Item.Properties()));
+    public static final RegistryObject<Item> CELLPHONE_RF = ITEMS.register("cellphone.rf",
+            () -> new CellphoneFEItem(new Item.Properties()
+                    .maxStackSize(1).group(EMobileItemGroup.EMOBILE_GROUP)));
 
     public static void registerItems(IEventBus eventBus) {
         ITEMS.register(eventBus);

@@ -2,7 +2,7 @@ package com.ryanjhuston.emobile.item;
 
 import com.ryanjhuston.emobile.EMobileMod;
 import com.ryanjhuston.emobile.common.container.CellphoneItemContainer;
-import com.ryanjhuston.emobile.common.inventory.CellphoneCapabilityProvider;
+import com.ryanjhuston.emobile.common.inventory.ItemCapabilityProvider;
 import com.ryanjhuston.emobile.common.inventory.CellphoneItemStackHandler;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.util.ITooltipFlag;
@@ -29,13 +29,10 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class CellphonePearlItem extends CellphoneBaseItem{
+public class CellphonePearlItem extends CellphoneBaseItem {
 
     public CellphonePearlItem(Item.Properties properties) {
         super(properties);
-
-        properties.maxStackSize(1);
-        properties.group(EMobileItemGroup.EMOBILE_GROUP);
     }
 
     @Override
@@ -66,10 +63,25 @@ public class CellphonePearlItem extends CellphoneBaseItem{
         }
     }
 
+    @Override
+    public int getFuel(ItemStack item) {
+        return getItemStackHandler(item).getStoredPearls();
+    }
+
+    @Override
+    public boolean useFuel(ItemStack item) {
+        return getItemStackHandler(item).useFuel();
+    }
+
+    @Override
+    public void refundFuel(ItemStack item) {
+        getItemStackHandler(item).refundFuel();
+    }
+
     @Nonnull
     @Override
     public ICapabilityProvider initCapabilities(ItemStack item, CompoundNBT oldCap) {
-        return new CellphoneCapabilityProvider();
+        return new ItemCapabilityProvider();
     }
 
     private static CellphoneItemStackHandler getItemStackHandler(ItemStack item) {
@@ -79,42 +91,6 @@ public class CellphonePearlItem extends CellphoneBaseItem{
             return new CellphoneItemStackHandler(1);
         }
         return (CellphoneItemStackHandler) itemHandler;
-    }
-
-    @Nullable
-    @Override
-    public CompoundNBT getShareTag(ItemStack item) {
-        CompoundNBT baseTag = item.getTag();
-        CellphoneItemStackHandler itemHandler = getItemStackHandler(item);
-        CompoundNBT capabilityTag = itemHandler.serializeNBT();
-        CompoundNBT combinedTag = new CompoundNBT();
-
-        if(baseTag != null) {
-            combinedTag.put("base", baseTag);
-        }
-
-        if(capabilityTag != null) {
-            combinedTag.put("cap", capabilityTag);
-        }
-        return combinedTag;
-    }
-
-    @Override
-    public void readShareTag(ItemStack item, @Nullable CompoundNBT nbt) {
-        if (nbt == null) {
-            item.setTag(null);
-            return;
-        }
-        CompoundNBT baseTag = nbt.getCompound("base");
-        CompoundNBT capabilityTag = nbt.getCompound("cap");
-        item.setTag(baseTag);
-        CellphoneItemStackHandler itemStackHandlerFlowerBag = getItemStackHandler(item);
-        itemStackHandlerFlowerBag.deserializeNBT(capabilityTag);
-    }
-
-    @Override
-    public boolean useFuel(ItemStack item) {
-        return getItemStackHandler(item).useFuel();
     }
 
     private static class CellphoneItemContainerProvider implements INamedContainerProvider {
@@ -134,8 +110,7 @@ public class CellphonePearlItem extends CellphoneBaseItem{
 
         @Override
         public CellphoneItemContainer createMenu(int windowID, PlayerInventory playerInventory, PlayerEntity player) {
-            CellphoneItemContainer container = CellphoneItemContainer.createContainerServerSide(windowID, playerInventory, cellphone.getItemStackHandler(item), item);
-            return container;
+            return CellphoneItemContainer.createContainerServerSide(windowID, playerInventory, cellphone.getItemStackHandler(item), item);
         }
     }
 }

@@ -1,10 +1,25 @@
 package com.ryanjhuston.emobile.network.message;
 
 import com.ryanjhuston.emobile.EMobileMod;
+import com.ryanjhuston.emobile.config.EMConfig;
+import com.ryanjhuston.emobile.item.CellphoneBaseItem;
+import com.ryanjhuston.emobile.session.CellphoneSessionLocation;
+import com.ryanjhuston.emobile.session.CellphoneSessionsHandler;
 import com.ryanjhuston.emobile.util.ServerUtils;
+import com.ryanjhuston.emobile.util.TeleportUtils;
+import net.minecraft.block.BedBlock;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.storage.ServerWorldInfo;
 import net.minecraftforge.fml.network.NetworkEvent;
 
 import java.util.function.Supplier;
@@ -19,13 +34,44 @@ public class MessageCellphoneHome {
 
     public static void handle(MessageCellphoneHome msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
-            ServerPlayerEntity player = ServerUtils.getPlayerOnServer(msg.uuid);
+            if(EMConfig.allowTeleportHome.get()) {
+                ServerPlayerEntity player = ServerUtils.getPlayerOnServer(msg.uuid);
 
-            if(player != null) {
-                BlockPos bed = player.getBedPosition().orElse(null);
-                //Need to figure out how to get bed position world
-                if(bed != null) {
+                if (player != null) {
+                    ServerWorld world = player.getServer().getWorlds().iterator().next();
+                    BlockPos bed = player.func_241140_K_();
 
+                    if (!TeleportUtils.isWorldTeleportAllowed(player.getServerWorld(), world)) {
+                        player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.tryStart.world",
+                                        ((ServerWorldInfo) player.getServerWorld().getWorldInfo()).getWorldName(),
+                                        ((ServerWorldInfo) world.getWorldInfo()).getWorldName()),
+                                TextFormatting.RED), player.getUniqueID());
+                        return;
+                    }
+
+                    if (bed != null) {
+                        if (world.getBlockState(bed).getBlock() instanceof BedBlock) {
+                            if (!CellphoneSessionsHandler.isPlayerInSession(player)) {
+                                ItemStack heldItem = player.getHeldItemMainhand();
+                                if (heldItem != null && heldItem.getItem() instanceof CellphoneBaseItem) {
+                                    if (player.isCreative() || ((CellphoneBaseItem) heldItem.getItem()).useFuel(heldItem)) {
+                                        ServerUtils.playDiallingSound(player);
+                                        BedBlock bedBlock = (BedBlock) world.getBlockState(bed).getBlock();
+
+                                        Vector3d respawn = bedBlock.getRespawnPosition(world.getBlockState(bed), EntityType.PLAYER, world, bed, 0, player).get();
+
+                                        new CellphoneSessionLocation(EMConfig.teleportDuration.get(), "chat.cellphone.location.home", player, world, respawn.x + 0.5, respawn.y, respawn.z + 0.5);
+                                    }
+                                }
+                            }
+                        } else {
+                            player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.tryStart.bedmissing.1"), TextFormatting.RED), player.getUniqueID());
+                            player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.tryStart.bedmissing.2"), TextFormatting.RED), player.getUniqueID());
+                        }
+                    } else {
+                        player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.tryStart.bedmissing.1"), TextFormatting.RED), player.getUniqueID());
+                        player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.tryStart.bedmissing.2"), TextFormatting.RED), player.getUniqueID());
+                    }
                 }
             }
         });
@@ -48,72 +94,4 @@ public class MessageCellphoneHome {
         if (uuid == null || uuid.equals("")) return;
         buffer.writeString(uuid);
     }
-/*
-    private String player;
-
-    public MessageCellphoneHome() {
-    }
-
-    public MessageCellphoneHome(String player) {
-        this.player = player;
-    }
-
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        this.player = ByteBufUtils.readUTF8String(buf);
-    }
-
-    @Override
-    public void toBytes(ByteBuf buf) {
-        ByteBufUtils.writeUTF8String(buf, this.player);
-    }
-
-    @Override
-    public IMessage onMessage(MessageCellphoneHome msg, MessageContext ctx) {
-        if (EMConfig.allowTeleportHome) {
-            EntityPlayerMP player = ServerUtils.getPlayerOnServer(msg.player);
-            if (player == null) {
-                return null;
-            } else {
-                ChunkCoordinates bed = player.getBedLocation(player.dimension);
-                World world = player.worldObj;
-                if (bed == null && player.dimension != 0) {
-                    if (TeleportUtils.isDimTeleportAllowed(player.dimension, 0)) {
-                        bed = player.getBedLocation(0);
-                        world = player.mcServer.worldServerForDimension(0);
-                    } else {
-                        ServerUtils.sendChatToPlayer(player.getCommandSenderName(), String.format(StringUtils.translate("chat.cellphone.tryStart.dimension"), player.worldObj.provider.getDimensionName(), player.mcServer.worldServerForDimension(0).provider.getDimensionName()), EnumChatFormatting.RED);
-                        return null;
-                    }
-                }
-                if (bed != null) {
-                    Block bedBlock = world.getBlock(bed.posX, bed.posY, bed.posZ);
-                    if (bedBlock != null && !(bedBlock instanceof BlockBed) && !EMConfig.bedBlocks.contains(bedBlock.getClass().getName())) {
-                        bed = null;
-                    }
-                }
-                if (bed != null) {
-                    bed = world.getBlock(bed.posX, bed.posY, bed.posZ).getBedSpawnPosition(world, bed.posX, bed.posY, bed.posZ, player);
-                }
-                if (bed != null) {
-                    if (!CellphoneSessionsHandler.isPlayerInSession(player)) {
-                        ItemStack heldItem = player.getCurrentEquippedItem();
-                        if (heldItem != null && heldItem.getItem() instanceof ItemCellphone) {
-                            if (player.capabilities.isCreativeMode || ((ItemCellphone) heldItem.getItem()).useFuel(heldItem, player)) {
-                                ServerUtils.sendDiallingSound(player);
-                                new CellphoneSessionLocation(8, "chat.cellphone.location.home", player, 0, bed.posX, bed.posY, bed.posZ);
-                            }
-                        }
-                    }
-                } else {
-                    ServerUtils.sendChatToPlayer(player.getCommandSenderName(), StringUtils.translate("chat.cellphone.tryStart.bedmissing.1"), EnumChatFormatting.RED);
-                    ServerUtils.sendChatToPlayer(player.getCommandSenderName(), StringUtils.translate("chat.cellphone.tryStart.bedmissing.2"), EnumChatFormatting.RED);
-                }
-            }
-        }
-
-        return null;
-    }
-
- */
 }

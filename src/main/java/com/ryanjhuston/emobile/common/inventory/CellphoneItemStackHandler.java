@@ -1,7 +1,10 @@
 package com.ryanjhuston.emobile.common.inventory;
 
+import com.ryanjhuston.emobile.config.EMConfig;
 import net.minecraft.item.EnderPearlItem;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.ItemStackHandler;
 
 import javax.annotation.Nonnull;
@@ -32,7 +35,7 @@ public class CellphoneItemStackHandler extends ItemStackHandler {
 
     @Override
     public int getSlotLimit(int slot) {
-        return 64;
+        return EMConfig.enderPearlStackSize.get();
     }
 
     @Nonnull
@@ -42,7 +45,82 @@ public class CellphoneItemStackHandler extends ItemStackHandler {
             return item;
         }
 
-        return super.insertItem(slot, item, simulate);
+        if (item.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+
+        validateSlotIndex(slot);
+
+        ItemStack existing = this.stacks.get(slot);
+
+        int limit = this.getSlotLimit(slot);
+
+        if (!existing.isEmpty())
+        {
+            if (!ItemHandlerHelper.canItemStacksStack(item, existing))
+                return item;
+
+            limit -= existing.getCount();
+        }
+
+        if (limit <= 0)
+            return item;
+
+        boolean reachedLimit = item.getCount() > limit;
+
+        if (!simulate)
+        {
+            if (existing.isEmpty())
+            {
+                this.stacks.set(slot, reachedLimit ? ItemHandlerHelper.copyStackWithSize(item, limit) : item);
+            }
+            else
+            {
+                existing.grow(reachedLimit ? limit : item.getCount());
+            }
+            onContentsChanged(slot);
+        }
+
+        return reachedLimit ? ItemHandlerHelper.copyStackWithSize(item, item.getCount()- limit) : ItemStack.EMPTY;
+    }
+
+    @Override
+    public ItemStack extractItem(int slot, int amount, boolean simulate) {
+        if (amount == 0)
+            return ItemStack.EMPTY;
+
+        validateSlotIndex(slot);
+
+        ItemStack existing = this.stacks.get(slot);
+
+        if (existing.isEmpty())
+            return ItemStack.EMPTY;
+
+        int toExtract = Math.min(amount, existing.getMaxStackSize());
+
+        if (existing.getCount() <= toExtract)
+        {
+            if (!simulate)
+            {
+                this.stacks.set(slot, ItemStack.EMPTY);
+                onContentsChanged(slot);
+                return existing;
+            }
+            else
+            {
+                return existing.copy();
+            }
+        }
+        else
+        {
+            if (!simulate)
+            {
+                this.stacks.set(slot, ItemHandlerHelper.copyStackWithSize(existing, existing.getCount() - toExtract));
+                onContentsChanged(slot);
+            }
+
+            return ItemHandlerHelper.copyStackWithSize(existing, toExtract);
+        }
     }
 
     public int getStoredPearls() {
@@ -58,5 +136,14 @@ public class CellphoneItemStackHandler extends ItemStackHandler {
         this.getStackInSlot(0).setCount(this.getStackInSlot(0).getCount()-1);
         isDirty = true;
         return true;
+    }
+
+    public void refundFuel() {
+        if (this.getStoredPearls() != 0) {
+            this.getStackInSlot(0).setCount(this.getStackInSlot(0).getCount()+1);
+        } else {
+            this.setStackInSlot(0, new ItemStack(Items.ENDER_PEARL, 1));
+        }
+        isDirty = true;
     }
 }

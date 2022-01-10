@@ -5,11 +5,10 @@ import com.ryanjhuston.emobile.session.CellphoneSessionsHandler;
 import com.ryanjhuston.emobile.util.ServerUtils;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.util.text.Color;
 import net.minecraftforge.fml.network.NetworkEvent;
+import org.w3c.dom.Text;
 
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -26,9 +25,9 @@ public class MessageCellphoneAuthorize {
 
     public static void handle(MessageCellphoneAuthorize msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
-            boolean perma = msg.target.startsWith("p:");
+            boolean perma = msg.target.startsWith("p:") || msg.target.startsWith("P:");
             boolean unaccept = msg.target.startsWith("!");
-            String authorizedName = msg.target.replaceFirst("p:", "").replaceFirst("!", "");
+            String authorizedName = msg.target.replaceFirst("p:", "").replaceFirst("P:", "").replaceFirst("!", "");
 
             ServerPlayerEntity player = ServerUtils.getPlayerOnServer(msg.player);
 
@@ -39,28 +38,29 @@ public class MessageCellphoneAuthorize {
             UUID targetUUID = ServerUtils.getUUIDFromName(authorizedName);
 
             if(targetUUID == null) {
-                player.sendMessage(new TranslationTextComponent("chat.cellphone.authorize.unknown", authorizedName).setStyle(Style.EMPTY.setColor(Color.fromTextFormatting(TextFormatting.RED))), player.getUniqueID());
+                player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.authorize.unknown", authorizedName), TextFormatting.RED), player.getUniqueID());
                 return;
             }
 
             ServerPlayerEntity target = ServerUtils.getPlayerOnServer(targetUUID);
 
             if(player.equals(target)) {
-                player.sendMessage(new TranslationTextComponent("chat.cellphone.authorize.self").setStyle(Style.EMPTY.setColor(Color.fromTextFormatting(TextFormatting.RED))), player.getUniqueID());
+                player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.authorize.self"), TextFormatting.RED), player.getUniqueID());
                 return;
             }
 
             if (!unaccept) {
                 if (CellphoneSessionsHandler.acceptPlayer(player, targetUUID.toString(), perma)) {
-                    ServerUtils.sendChatToPlayers(player.getUniqueID(), targetUUID, new TranslationTextComponent("chat.cellphone.authorize.success" + (perma ? ".perma" : ""), authorizedName));
+                    player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.authorize.success" + (perma ? ".perma" : ""), authorizedName), TextFormatting.GREEN), player.getUniqueID());
+                    player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.authorize.success" + (perma ? ".perma" : "") + ".other", player.getDisplayName()), TextFormatting.GREEN), player.getUniqueID());
                 } else {
-                    ServerUtils.sendChatToPlayers(player.getUniqueID(), targetUUID, new TranslationTextComponent("chat.cellphone.authorize.already", authorizedName));
+                    ServerUtils.sendChatToPlayers(player.getUniqueID(), targetUUID, ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.authorize.already", authorizedName), TextFormatting.RED));
                 }
             } else {
                 if (CellphoneSessionsHandler.deacceptPlayer(player, targetUUID.toString())) {
-                    ServerUtils.sendChatToPlayers(player.getUniqueID(), targetUUID, new TranslationTextComponent("chat.cellphone.unauthorize.success", authorizedName));
+                    ServerUtils.sendChatToPlayers(player.getUniqueID(), targetUUID, ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.unauthorize.success", authorizedName), TextFormatting.GREEN));
                 } else {
-                    ServerUtils.sendChatToPlayers(player.getUniqueID(), targetUUID, new TranslationTextComponent("chat.cellphone.unauthorize.already", authorizedName));
+                    ServerUtils.sendChatToPlayers(player.getUniqueID(), targetUUID, ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.unauthorize.already", authorizedName), TextFormatting.RED));
                 }
             }
         });
@@ -85,49 +85,4 @@ public class MessageCellphoneAuthorize {
         buffer.writeString(player);
         buffer.writeString(target);
     }
-
-/*
-    private String accepting;
-    private String accepted;
-
-    public MessageCellphoneAuthorize(String accepting, String accepted) {
-        this.accepting = accepting;
-        this.accepted = accepted;
-    }
-
-    public static void handle(MessageCellphoneAuthorize msg, MessagePassingQueue.Supplier<NetworkEvent.Context> ctx) {
-        if (EMConfig.allowTeleportPlayers) {
-            ctx.get().enqueueWork(() -> {
-                        boolean perma = msg.accepted.startsWith("p:");
-                        boolean unaccept = msg.accepted.startsWith("!");
-                        String accepted = msg.accepted.replaceFirst("p:", "").replaceFirst("!", "");
-
-                        ServerPlayerEntity acceptingPlayer = ServerUtils.getPlayerOnServer(msg.accepting);
-                        ServerPlayerEntity acceptedPlayer = ServerUtils.getPlayerOnServer(accepted);
-                        if (acceptingPlayer == null) {
-                            return null;
-                        } else if (acceptedPlayer == null) {
-                            ServerUtils.sendChatToPlayer(acceptingPlayer.getUniqueID(), new TranslationTextComponent("chat.cellphone.authorize.unknown").setStyle(Style.EMPTY.setColor(Color.fromTextFormatting(TextFormatting.RED))));
-                        } else if (acceptingPlayer.equals(acceptedPlayer)) {
-                            ServerUtils.sendChatToPlayer(acceptingPlayer.getUniqueID(), new TranslationTextComponent("chat.cellphone.authorize.self").setStyle(Style.EMPTY.setColor(Color.fromTextFormatting(TextFormatting.RED))));
-                        } else {
-                            if (!unaccept) {
-                                if (CellphoneSessionsHandler.acceptPlayer(acceptingPlayer, acceptedPlayer, perma)) {
-                                    ServerUtils.sendChatToPlayers(acceptingPlayer.getUniqueID(), acceptedPlayer.getUniqueID(), new TranslationTextComponent("chat.cellphone.authorize.success" + (perma ? ".perma" : "")));
-                                } else {
-                                    ServerUtils.sendChatToPlayers(acceptingPlayer.getUniqueID(), acceptedPlayer.getUniqueID(), new TranslationTextComponent("chat.cellphone.authorize.already"));
-                                }
-                            } else {
-                                if (CellphoneSessionsHandler.deacceptPlayer(acceptingPlayer, acceptedPlayer, true)) {
-                                    ServerUtils.sendChatToPlayers(acceptingPlayer.getUniqueID(), acceptedPlayer.getUniqueID(), new TranslationTextComponent("chat.cellphone.unauthorize.success"));
-                                } else {
-                                    ServerUtils.sendChatToPlayers(acceptingPlayer.getUniqueID(), acceptedPlayer.getUniqueID(), new TranslationTextComponent("chat.cellphone.unauthorize.already"));
-                                }
-                            }
-                        }
-                    }
-            );
-        }
-    }
- */
 }

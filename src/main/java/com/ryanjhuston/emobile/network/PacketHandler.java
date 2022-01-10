@@ -8,6 +8,7 @@ import net.minecraftforge.fml.network.simple.SimpleChannel;
 
 import java.util.Optional;
 
+import static net.minecraftforge.fml.network.NetworkDirection.PLAY_TO_CLIENT;
 import static net.minecraftforge.fml.network.NetworkDirection.PLAY_TO_SERVER;
 
 public class PacketHandler {
@@ -27,12 +28,8 @@ public class PacketHandler {
         INSTANCE.registerMessage(0, MessageCellphoneAuthorize.class, MessageCellphoneAuthorize::encode, MessageCellphoneAuthorize::decode, MessageCellphoneAuthorize::handle, Optional.of(PLAY_TO_SERVER));
         INSTANCE.registerMessage(1, MessageCellphoneCancel.class, MessageCellphoneCancel::encode, MessageCellphoneCancel::decode, MessageCellphoneCancel::handle, Optional.of(PLAY_TO_SERVER));
         INSTANCE.registerMessage(2, MessageCellphoneHome.class, MessageCellphoneHome::encode, MessageCellphoneHome::decode, MessageCellphoneHome::handle, Optional.of(PLAY_TO_SERVER));
-        //INSTANCE.registerMessage(3, MessageCellphonePlayer.class, MessageCellphonePlayer::encode, MessageCellphonePlayer::decode, MessageCellphonePlayer::handle, Optional.of(PLAY_TO_SERVER));
+        INSTANCE.registerMessage(3, MessageCellphonePlayer.class, MessageCellphonePlayer::encode, MessageCellphonePlayer::decode, MessageCellphonePlayer::handle, Optional.of(PLAY_TO_SERVER));
         INSTANCE.registerMessage(4, MessageCellphoneSpawn.class, MessageCellphoneSpawn::encode, MessageCellphoneSpawn::decode, MessageCellphoneSpawn::handle, Optional.of(PLAY_TO_SERVER));
-
-        /*INSTANCE.registerMessage(MessageConfigSync.class, MessageConfigSync.class, 5, Side.CLIENT);
-        INSTANCE.registerMessage(MessageDiallingSound.class, MessageDiallingSound.class, 6, Side.CLIENT);
-        INSTANCE.registerMessage(MessageDiallingParticles.class, MessageDiallingParticles.class, 7, Side.CLIENT);
-        INSTANCE.registerMessage(MessageTeleportParticles.class, MessageTeleportParticles.class, 8, Side.CLIENT);*/
+        INSTANCE.registerMessage(5, MessageConfigSync.class, MessageConfigSync::encode, MessageConfigSync::decode, MessageConfigSync::clientHandle, Optional.of(PLAY_TO_CLIENT));
     }
 }

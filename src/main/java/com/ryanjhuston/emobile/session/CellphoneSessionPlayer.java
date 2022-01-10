@@ -1,7 +1,7 @@
 package com.ryanjhuston.emobile.session;
 
+import com.ryanjhuston.emobile.item.CellphoneBaseItem;
 import com.ryanjhuston.emobile.util.ServerUtils;
-import com.ryanjhuston.emobile.util.StringUtils;
 import com.ryanjhuston.emobile.util.TeleportUtils;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
@@ -9,10 +9,7 @@ import net.minecraft.util.text.Color;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraftforge.client.event.sound.SoundEvent;
-import net.minecraftforge.eventbus.api.Event;
-
-import java.util.UUID;
+import net.minecraft.world.storage.ServerWorldInfo;
 
 public class CellphoneSessionPlayer extends CellphoneSessionBase{
 
@@ -24,8 +21,8 @@ public class CellphoneSessionPlayer extends CellphoneSessionBase{
         this.requestingPlayer = requestingPlayer;
         this.receivingPlayer = receivingPlayer;
 
-        requestingPlayer.sendMessage(ServerUtils.getTranslationTextComponent("chat.cellphone.start.request", TextFormatting.GOLD), receivingPlayer.getUniqueID());
-        receivingPlayer.sendMessage(ServerUtils.getTranslationTextComponent("chat.cellphone.start.receiving", TextFormatting.GOLD), requestingPlayer.getUniqueID());
+        requestingPlayer.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.start.requesting", receivingPlayer.getDisplayName()), TextFormatting.GOLD), receivingPlayer.getUniqueID());
+        receivingPlayer.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.start.receiving", requestingPlayer.getDisplayName()), TextFormatting.GOLD), requestingPlayer.getUniqueID());
     }
 
     @Override
@@ -34,16 +31,15 @@ public class CellphoneSessionPlayer extends CellphoneSessionBase{
             this.invalidate();
             return;
         } else if (!TeleportUtils.isWorldTeleportAllowed(this.requestingPlayer.getServerWorld(), this.receivingPlayer.getServerWorld())) {
-            //String msg = String.format(StringUtils.translate("chat.cellphone.cancel.dimension"), this.requestingPlayer.worldObj.provider.getDimensionName(), this.receivingPlayer.worldObj.provider.getDimensionName());
-            requestingPlayer.sendMessage(ServerUtils.getTranslationTextComponent("chat.cellphone.cancel.dimension", TextFormatting.RED), receivingPlayer.getUniqueID());
-            receivingPlayer.sendMessage(ServerUtils.getTranslationTextComponent("chat.cellphone.cancel.dimension", TextFormatting.RED), requestingPlayer.getUniqueID());
+            requestingPlayer.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.cancel.dimension", ((ServerWorldInfo)this.requestingPlayer.world.getWorldInfo()).getWorldName(), ((ServerWorldInfo)this.receivingPlayer.world.getWorldInfo()).getWorldName()), TextFormatting.RED), receivingPlayer.getUniqueID());
+            receivingPlayer.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.cancel.dimension", ((ServerWorldInfo)this.requestingPlayer.world.getWorldInfo()).getWorldName(), ((ServerWorldInfo)this.receivingPlayer.world.getWorldInfo()).getWorldName()), TextFormatting.RED), requestingPlayer.getUniqueID());
             this.invalidate();
             return;
         }
 
         if (this.ticks % Math.max(this.countdownSecs - 2, 1) == 0) {
-            ServerUtils.sendDiallingParticles(this.receivingPlayer);
-            ServerUtils.sendDiallingParticles(this.requestingPlayer);
+            ServerUtils.spawnDiallingParticles(receivingPlayer);
+            ServerUtils.spawnDiallingParticles(requestingPlayer);
         }
 
         super.tick();
@@ -52,20 +48,23 @@ public class CellphoneSessionPlayer extends CellphoneSessionBase{
     @Override
     public void onCountdownSecond() {
         if (this.countdownSecs <= 3 || this.countdownSecs % 2 == 0) {
-            this.requestingPlayer.sendMessage(new TranslationTextComponent("chat.cellphone.countdown", this.countdownSecs).setStyle(Style.EMPTY.setColor(Color.fromTextFormatting(TextFormatting.LIGHT_PURPLE))), UUID.fromString(""));
+            this.requestingPlayer.sendMessage(new TranslationTextComponent("chat.cellphone.countdown", this.countdownSecs).setStyle(Style.EMPTY.setColor(Color.fromTextFormatting(TextFormatting.LIGHT_PURPLE))), requestingPlayer.getUniqueID());
         }
     }
 
     @Override
     public void onCountdownFinished() {
-        //this.requestingPlayer.worldObj.playSoundAtEntity(this.requestingPlayer, "mob.endermen.portal", 1.0F, 1.0F);
-        //this.requestingPlayer.getServerWorld().playSound(this.requestingPlayer, this.requestingPlayer.getPosition(), Event.HasResult);
-        ServerUtils.sendTeleportParticles(this.receivingPlayer);
-        TeleportUtils.teleportPlayer(this.requestingPlayer, this.receivingPlayer);
-        //this.requestingPlayer.getServerWorld().playSound(this.requestingPlayer, "mob.endermen.portal", 1.0F, 1.0F);
-        ServerUtils.sendTeleportParticles(this.receivingPlayer);
-        requestingPlayer.sendMessage(new TranslationTextComponent("chat.cellphone.success.request", receivingPlayer.getDisplayName().toString()), receivingPlayer.getUniqueID());
-        receivingPlayer.sendMessage(new TranslationTextComponent("chat.cellphone.success.receiving", requestingPlayer.getDisplayName().toString()), requestingPlayer.getUniqueID());
+        if(ServerUtils.hasCellphone(receivingPlayer)) {
+            ServerUtils.sendTeleportLeaveParticles(this.requestingPlayer);
+            ServerUtils.playTeleportSound(requestingPlayer);
+            requestingPlayer.teleport(this.receivingPlayer.getServerWorld(), this.receivingPlayer.getPosX(), this.receivingPlayer.getPosY(), this.receivingPlayer.getPosZ(), 0, 0);
+            ServerUtils.playTeleportSound(requestingPlayer);
+            ServerUtils.sendTeleportArriveParticles(requestingPlayer);
+            requestingPlayer.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.success.requesting", receivingPlayer.getDisplayName().getUnformattedComponentText()), TextFormatting.GREEN), receivingPlayer.getUniqueID());
+            receivingPlayer.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.success.receiving", requestingPlayer.getDisplayName().getUnformattedComponentText()), TextFormatting.GREEN), requestingPlayer.getUniqueID());
+        } else {
+            requestingPlayer.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.cancel.nophone", receivingPlayer.getDisplayName().getUnformattedComponentText()), TextFormatting.RED), requestingPlayer.getUniqueID());
+        }
     }
 
     @Override
@@ -77,9 +76,8 @@ public class CellphoneSessionPlayer extends CellphoneSessionBase{
     @Override
     public void cancel(String canceledBy) {
         super.cancel(canceledBy);
-        //TranslationTextComponent msg = new TranslationTextComponent("chat.cellphone.cancel.player")("chat.cellphone.cancel.player"), canceledBy);
-        requestingPlayer.sendMessage(ServerUtils.getTranslationTextComponent("chat.cellphone.cancel.player", TextFormatting.RED), receivingPlayer.getUniqueID());
-        receivingPlayer.sendMessage(ServerUtils.getTranslationTextComponent("chat.cellphone.cancel.player", TextFormatting.RED), requestingPlayer.getUniqueID());
+        requestingPlayer.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.cancel.player", canceledBy), TextFormatting.RED), receivingPlayer.getUniqueID());
+        receivingPlayer.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.cancel.player", canceledBy), TextFormatting.RED), requestingPlayer.getUniqueID());
     }
 
     @Override

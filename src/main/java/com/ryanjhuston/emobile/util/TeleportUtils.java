@@ -5,6 +5,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.storage.ServerWorldInfo;
 
 public class TeleportUtils {
 
@@ -38,21 +39,15 @@ public class TeleportUtils {
             return true;
         }
 
-        if (!EMConfig.dimensionsWhitelist) {
-            if (configContainsWorld(from.getProviderName()) || configContainsWorld(to.getProviderName())) {
-                return false;
-            }
-            return true;
+        if (!EMConfig.worldWhitelist.get()) {
+            return !configContainsWorld(((ServerWorldInfo) from.getWorldInfo()).getWorldName()) && !configContainsWorld(((ServerWorldInfo) to.getWorldInfo()).getWorldName());
         } else {
-            if (configContainsWorld(from.getProviderName()) && configContainsWorld(to.getProviderName())) {
-                return true;
-            }
-            return false;
+            return configContainsWorld(from.getProviderName()) && configContainsWorld(to.getProviderName());
         }
     }
 
     public static boolean configContainsWorld(String name) {
-        for (String i : EMConfig.dimensionsBlacklist) {
+        for (String i : EMConfig.worldBlacklist.get()) {
             if (i.equals(name)) {
                 return true;
             }

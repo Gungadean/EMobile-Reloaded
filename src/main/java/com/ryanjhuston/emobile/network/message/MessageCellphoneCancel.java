@@ -1,10 +1,13 @@
 package com.ryanjhuston.emobile.network.message;
 
 import com.ryanjhuston.emobile.EMobileMod;
+import com.ryanjhuston.emobile.item.CellphoneBaseItem;
 import com.ryanjhuston.emobile.session.CellphoneSessionsHandler;
 import com.ryanjhuston.emobile.util.ServerUtils;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.fml.network.NetworkEvent;
 
@@ -23,8 +26,18 @@ public class MessageCellphoneCancel {
             ServerPlayerEntity player = ServerUtils.getPlayerOnServer(msg.uuid);
 
             if(player != null) {
-                CellphoneSessionsHandler.cancelSessionsForPlayer(player);
-                player.sendMessage(new TranslationTextComponent("chat.cellphone.cancel"), player.getUniqueID());
+                if(!CellphoneSessionsHandler.isPlayerInSession(player)) {
+                    player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.nocancel"), TextFormatting.RED), player.getUniqueID());
+                } else {
+                    CellphoneSessionsHandler.cancelSessionsForPlayer(player);
+
+                    ItemStack heldItem = player.getHeldItemMainhand();
+                    if (heldItem != null && heldItem.getItem() instanceof CellphoneBaseItem) {
+                        if (!player.isCreative()) {
+                            ((CellphoneBaseItem) heldItem.getItem()).refundFuel(heldItem);
+                        }
+                    }
+                }
             }
         });
         ctx.get().setPacketHandled(true);
@@ -46,37 +59,4 @@ public class MessageCellphoneCancel {
         if (uuid == null || uuid.equals("")) return;
         buffer.writeString(uuid);
     }
-
-/*
-    private String player;
-
-    public MessageCellphoneCancel() {
-    }
-
-    public MessageCellphoneCancel(String player) {
-        this.player = player;
-    }
-
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        this.player = ByteBufUtils.readUTF8String(buf);
-    }
-
-    @Override
-    public void toBytes(ByteBuf buf) {
-        ByteBufUtils.writeUTF8String(buf, this.player);
-    }
-
-    @Override
-    public IMessage onMessage(MessageCellphoneCancel msg, MessageContext ctx) {
-        EntityPlayerMP player = ServerUtils.getPlayerOnServer(msg.player);
-        if (player == null) {
-            return null;
-        } else {
-            CellphoneSessionsHandler.cancelSessionsForPlayer(player);
-        }
-        return null;
-    }
-
- */
 }

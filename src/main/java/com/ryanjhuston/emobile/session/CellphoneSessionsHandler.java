@@ -1,7 +1,7 @@
 package com.ryanjhuston.emobile.session;
 
-import com.ryanjhuston.emobile.common.player.CapabilityTeleportData;
-import com.ryanjhuston.emobile.common.player.PlayerTeleportData;
+import com.ryanjhuston.emobile.common.player.PlayerCapabilityProvider;
+import com.ryanjhuston.emobile.common.player.PlayerTeleportDataHandler;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -25,32 +25,29 @@ public class CellphoneSessionsHandler {
     }
 
     public static boolean acceptPlayer(ServerPlayerEntity accepting, String accepted, boolean perma) {
-        PlayerTeleportData teleportData = accepting.getCapability(CapabilityTeleportData.CAPABILITY_PLAYER_TELEPORT).orElse(null);
-
-        if(teleportData == null) {
-            throw new IllegalStateException("PlayerTeleportData was not found. This is an error.");
-        }
+        PlayerTeleportDataHandler teleportData = accepting.getCapability(PlayerCapabilityProvider.CAPABILITY_PLAYER_TELEPORT)
+                .orElseThrow(() -> new IllegalStateException("PlayerDataHandler was not found. This is an error."));
 
         if(perma) {
             if(!teleportData.isPAccepted(accepted)) {
+                if(teleportData.isAccepted(accepted)) {
+                    teleportData.removeAccepted(accepted);
+                }
                 teleportData.addPAccepted(accepted);
-                return false;
+                return true;
             }
         } else {
-            if(!teleportData.isAccepted(accepted)) {
+            if(!teleportData.isAccepted(accepted) && !teleportData.isPAccepted(accepted)) {
                 teleportData.addAccepted(accepted);
-                return false;
+                return true;
             }
         }
         return false;
     }
 
     public static boolean deacceptPlayer(ServerPlayerEntity deaccepting, String deaccepted) {
-        PlayerTeleportData teleportData = deaccepting.getCapability(CapabilityTeleportData.CAPABILITY_PLAYER_TELEPORT).orElse(null);
-
-        if(teleportData == null) {
-            throw new IllegalStateException("Error: PlayerTeleportData was not found.");
-        }
+        PlayerTeleportDataHandler teleportData = deaccepting.getCapability(PlayerCapabilityProvider.CAPABILITY_PLAYER_TELEPORT)
+                .orElseThrow(() -> new IllegalStateException("PlayerDataHandler was not found. This is an error."));
 
         if(!teleportData.isAccepted(deaccepted) && !teleportData.isPAccepted(deaccepted)) {
             return false;
@@ -66,16 +63,18 @@ public class CellphoneSessionsHandler {
         return true;
     }
 
-    public static boolean isPlayerAccepted(PlayerTeleportData data, String target) {
-        if(data.isAccepted(target) || data.isPAccepted(target)) {
-            return true;
-        } else {
-            return false;
-        }
+    public static boolean isPlayerAccepted(ServerPlayerEntity player, ServerPlayerEntity target) {
+        PlayerTeleportDataHandler teleportData = target.getCapability(PlayerCapabilityProvider.CAPABILITY_PLAYER_TELEPORT)
+                .orElseThrow(() -> new IllegalStateException("PlayerDataHandler was not found. This is an error."));
+        return isPlayerAccepted(teleportData, player.getUniqueID().toString());
+    }
+
+    public static boolean isPlayerAccepted(PlayerTeleportDataHandler data, String target) {
+        return !data.isAccepted(target) && !data.isPAccepted(target);
     }
 
     public static void cancelSessionsForPlayer(ServerPlayerEntity player) {
-        sessions.remove(player.getUniqueID().toString());
+        sessions.get(player.getUniqueID().toString()).cancel(player.getUniqueID().toString());
     }
 
     @SubscribeEvent

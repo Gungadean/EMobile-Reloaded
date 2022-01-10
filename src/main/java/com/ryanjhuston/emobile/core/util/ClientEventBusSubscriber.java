@@ -2,7 +2,7 @@ package com.ryanjhuston.emobile.core.util;
 
 import com.ryanjhuston.emobile.EMobileMod;
 import com.ryanjhuston.emobile.client.gui.PearlCellphoneScreen;
-import com.ryanjhuston.emobile.client.gui.RFCellphoneScreen;
+import com.ryanjhuston.emobile.client.gui.FECellphoneScreen;
 import com.ryanjhuston.emobile.core.init.ContainerTypesInit;
 import net.minecraft.client.gui.ScreenManager;
 import net.minecraftforge.api.distmarker.Dist;
@@ -16,6 +16,6 @@ public class ClientEventBusSubscriber {
     @SubscribeEvent
     public static void clientSetup(FMLClientSetupEvent event) {
         ScreenManager.registerFactory(ContainerTypesInit.CELLPHONE_ITEM_CONTAINER_TYPE.get(), PearlCellphoneScreen::new);
-        ScreenManager.registerFactory(ContainerTypesInit.CELLPHONE_RF_CONTAINER_TYPE.get(), RFCellphoneScreen::new);
+        ScreenManager.registerFactory(ContainerTypesInit.CELLPHONE_RF_CONTAINER_TYPE.get(), FECellphoneScreen::new);
     }
 }

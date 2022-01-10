@@ -9,5 +9,9 @@ public abstract class CellphoneBaseItem extends Item {
         super(properties);
     }
 
+    public abstract int getFuel(ItemStack item);
+
     public abstract boolean useFuel(ItemStack item);
+
+    public abstract void refundFuel(ItemStack item);
 }

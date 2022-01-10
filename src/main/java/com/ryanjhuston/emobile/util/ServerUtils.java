@@ -1,15 +1,24 @@
 package com.ryanjhuston.emobile.util;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.entity.player.PlayerEntity;
+import com.ryanjhuston.emobile.client.audio.SoundRegister;
+import com.ryanjhuston.emobile.item.CellphoneBaseItem;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.particles.ParticleTypes;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.SoundEvents;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.*;
-import net.minecraft.world.World;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.fml.server.ServerLifecycleHooks;
 
+import java.util.Random;
 import java.util.UUID;
 
 public class ServerUtils {
+
+    private static Random rand = new Random();
 
     public static ServerPlayerEntity getPlayerOnServer(UUID uuid) {
         return ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayerByUUID(uuid);
@@ -68,24 +77,76 @@ public class ServerUtils {
         sendChatToPlayer(uuid, chat, TextFormatting.WHITE);
     }
 
-    public static ITextComponent getTranslationTextComponent(String key, TextFormatting color) {
-        return new TranslationTextComponent(key).setStyle(Style.EMPTY.setColor(Color.fromTextFormatting(color)));
+    public static ITextComponent setColor(TranslationTextComponent component, TextFormatting color) {
+        return component.setStyle(Style.EMPTY.setColor(Color.fromTextFormatting(color)));
     }
 
-    public static void sendDiallingSound(PlayerEntity player) {
-        //PacketHandler.INSTANCE.sendToServer(new MessageDiallingSound(player.getPosX(), player.getPosY() + 0.8D, player.getPosZ()));
+    public static ITextComponent setFormat(TranslationTextComponent component, TextFormatting format) {
+        return component.setStyle(Style.EMPTY.setFormatting(format));
     }
 
-    public static void sendDiallingParticles(PlayerEntity player) {
-        //PacketHandler.INSTANCE.sendToServer(new MessageDiallingParticles(player.getPosX(), player.getPosY() + 0.8D, player.getPosZ()));
+    public static ITextComponent setColor(StringTextComponent component, TextFormatting color) {
+        return component.setStyle(Style.EMPTY.setColor(Color.fromTextFormatting(color)));
     }
 
-    public static void sendDiallingParticles(World world, int posX, int posY, int posZ) {
-        //PacketHandler.INSTANCE.sendToServer(new MessageDiallingParticles(posX + 0.5D, posY + 0.5D, posZ + 0.5D));
+    public static ITextComponent setFormat(StringTextComponent component, TextFormatting format) {
+        return component.setStyle(Style.EMPTY.setFormatting(format));
     }
 
-    public static void sendTeleportParticles(PlayerEntity player) {
-        //PacketHandler.INSTANCE.sendToServer(new MessageTeleportParticles(player.getPosX(), player.getPosY() + 0.8D, player.getPosZ()),
-        //        new PacketDistributor.TargetPoint(player.getEntityWorld(), player.getPosX(), player.getPosY(), player.getPosZ(), 256));
+    public static void playDiallingSound(ServerPlayerEntity player) {
+        player.getServerWorld().playSound(null, player.getPosX(), player.getPosY(), player.getPosZ(), SoundRegister.DIAL_TONE.get(), SoundCategory.MASTER, 0.5F, 0.5F);
+    }
+
+    public static void playTeleportSound(ServerPlayerEntity player) {
+        playTeleportSound(player, player.getPosX(), player.getPosY(), player.getPosZ());
+    }
+
+    public static void playTeleportSound(ServerPlayerEntity player, double posX, double posY, double posZ) {
+        player.getServerWorld().playSound(null, posX, posY, posZ, SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1.0F, 1.0F);
+    }
+
+    public static void spawnDiallingParticles(ServerPlayerEntity player) {
+        spawnDiallingParticles(player.getServerWorld(), player.getPosX(), player.getPosY(), player.getPosZ());
+    }
+
+    public static void spawnDiallingParticles(ServerWorld world, double posX, double posY, double posZ) {
+        for(int i = 0; i <= 15; i++) {
+            double velX = rand.nextGaussian();
+            double velY = rand.nextGaussian();
+            double velZ = rand.nextGaussian();
+
+            world.spawnParticle(ParticleTypes.PORTAL, posX, posY, posZ, 1, velX, velY, velZ, 1);
+        }
+    }
+
+    public static void sendTeleportLeaveParticles(ServerPlayerEntity player) {
+        sendTeleportLeaveParticles(player.getServerWorld(), player.getPosX(), player.getPosY(), player.getPosZ());
+    }
+
+    public static void sendTeleportLeaveParticles(ServerWorld world, double posX, double posY, double posZ) {
+        world.playEvent(2003, new BlockPos(posX, posY + 1.5, posZ), 0);
+    }
+
+    public static void sendTeleportArriveParticles(ServerPlayerEntity player) {
+        sendTeleportArriveParticles(player.getServerWorld(), player.getPosX(), player.getPosZ(), player.getPosZ());
+    }
+
+    public static void sendTeleportArriveParticles(ServerWorld world, double posX, double posY, double posZ) {
+
+    }
+
+    public static boolean hasCellphone(ServerPlayerEntity player) {
+        for(ItemStack item : player.inventory.mainInventory) {
+            if(item.getItem() instanceof CellphoneBaseItem) {
+                return true;
+            }
+        }
+
+        for(ItemStack item : player.inventory.offHandInventory) {
+            if(item.getItem() instanceof CellphoneBaseItem) {
+                return true;
+            }
+        }
+        return false;
     }
 }

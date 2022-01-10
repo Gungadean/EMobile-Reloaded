@@ -7,12 +7,12 @@ import net.minecraftforge.common.capabilities.Capability;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PlayerTeleportData {
+public class PlayerTeleportDataHandler {
 
     private List<String> accepted = new ArrayList<>();
     private List<String> paccepted = new ArrayList<>();
 
-    public PlayerTeleportData() {}
+    public PlayerTeleportDataHandler() {}
 
     public boolean isAccepted(String uuid) {
         return accepted.contains(uuid);
@@ -51,21 +51,29 @@ public class PlayerTeleportData {
     }
 
     public void setAccepted(List<String> accepted) {
-        this.accepted = accepted;
+        if(!accepted.isEmpty()) {
+            this.accepted.clear();
+        }
+
+        this.accepted.addAll(accepted);
     }
 
     public void setPAccepted(List<String> paccepted) {
-        this.paccepted = paccepted;
+        if(!paccepted.isEmpty()){
+            this.paccepted.clear();
+        }
+
+        this.paccepted.addAll(paccepted);
     }
 
-    public static PlayerTeleportData createDefault() {
-        return new PlayerTeleportData();
+    public static PlayerTeleportDataHandler createDefault() {
+        return new PlayerTeleportDataHandler();
     }
 
-    public static class PlayerTeleportDataNBTStorage implements Capability.IStorage<PlayerTeleportData> {
+    public static class PlayerDataStorage implements Capability.IStorage<PlayerTeleportDataHandler> {
 
         @Override
-        public INBT writeNBT(Capability<PlayerTeleportData> cap, PlayerTeleportData instance, Direction side) {
+        public INBT writeNBT(Capability<PlayerTeleportDataHandler> cap, PlayerTeleportDataHandler instance, Direction side) {
             CompoundNBT nbt = new CompoundNBT();
             ListNBT acceptedList = new ListNBT();
             ListNBT pacceptedList = new ListNBT();
@@ -80,18 +88,17 @@ public class PlayerTeleportData {
 
             nbt.put("accepted", acceptedList);
             nbt.put("paccepted", pacceptedList);
+
             return nbt;
         }
 
         @Override
-        public void readNBT(Capability<PlayerTeleportData> cap, PlayerTeleportData instance, Direction side, INBT nbt) {
-            CompoundNBT compoundNBT = (CompoundNBT) nbt;
-
+        public void readNBT(Capability<PlayerTeleportDataHandler> cap, PlayerTeleportDataHandler instance, Direction side, INBT nbt) {
             List<String> accepted = new ArrayList<>();
             List<String> paccepted = new ArrayList<>();
 
-            ListNBT acceptedNBT = compoundNBT.getList("accepted", 0);
-            ListNBT pacceptedNBT = compoundNBT.getList("paccepted", 0);
+            ListNBT acceptedNBT = ((CompoundNBT)nbt).getList("accepted", 8);
+            ListNBT pacceptedNBT = ((CompoundNBT)nbt).getList("paccepted", 8);
 
             for(INBT part : acceptedNBT) {
                 accepted.add(part.getString());

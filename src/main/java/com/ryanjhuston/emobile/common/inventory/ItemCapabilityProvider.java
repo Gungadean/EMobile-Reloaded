@@ -11,7 +11,7 @@ import net.minecraftforge.items.IItemHandler;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class CellphoneCapabilityProvider implements ICapabilitySerializable<INBT> {
+public class ItemCapabilityProvider implements ICapabilitySerializable<INBT> {
 
     private CellphoneItemStackHandler cellphoneItemStackHandler;
     private final LazyOptional<IItemHandler> lazyInitSupplier = LazyOptional.of(this::getCachedInventory);
@@ -22,6 +22,7 @@ public class CellphoneCapabilityProvider implements ICapabilitySerializable<INBT
         if(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY == cap) {
             return (LazyOptional<T>) (lazyInitSupplier);
         }
+
         return LazyOptional.empty();
     }
 

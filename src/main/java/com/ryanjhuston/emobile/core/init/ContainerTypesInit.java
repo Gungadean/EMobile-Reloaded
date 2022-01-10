@@ -2,7 +2,7 @@ package com.ryanjhuston.emobile.core.init;
 
 import com.ryanjhuston.emobile.EMobileMod;
 import com.ryanjhuston.emobile.common.container.CellphoneItemContainer;
-import com.ryanjhuston.emobile.common.container.CellphoneRFContainer;
+import com.ryanjhuston.emobile.common.container.CellphoneFEContainer;
 import net.minecraft.inventory.container.ContainerType;
 import net.minecraftforge.common.extensions.IForgeContainerType;
 import net.minecraftforge.fml.RegistryObject;
@@ -17,6 +17,6 @@ public class ContainerTypesInit {
     public static final RegistryObject<ContainerType<CellphoneItemContainer>> CELLPHONE_ITEM_CONTAINER_TYPE =
             CONTAINER_TYPES.register("cellphone_pearl", () -> IForgeContainerType.create(CellphoneItemContainer::createContainerClientSide));
 
-    public static final RegistryObject<ContainerType<CellphoneRFContainer>> CELLPHONE_RF_CONTAINER_TYPE =
-            CONTAINER_TYPES.register("cellphone_rf", () -> IForgeContainerType.create(CellphoneRFContainer::createContainerClientSide));
+    public static final RegistryObject<ContainerType<CellphoneFEContainer>> CELLPHONE_RF_CONTAINER_TYPE =
+            CONTAINER_TYPES.register("cellphone_rf", () -> IForgeContainerType.create(CellphoneFEContainer::createContainerClientSide));
 }

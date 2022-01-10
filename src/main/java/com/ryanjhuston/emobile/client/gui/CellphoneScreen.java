@@ -3,17 +3,27 @@ package com.ryanjhuston.emobile.client.gui;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.ryanjhuston.emobile.EMobileMod;
 import com.ryanjhuston.emobile.common.container.CellphoneBaseContainer;
+import com.ryanjhuston.emobile.common.container.CellphoneItemContainer;
+import com.ryanjhuston.emobile.common.container.SlotLocked;
+import com.ryanjhuston.emobile.config.EMConfig;
 import com.ryanjhuston.emobile.network.PacketHandler;
 import com.ryanjhuston.emobile.network.message.*;
+import com.ryanjhuston.emobile.util.ServerUtils;
+import com.ryanjhuston.emobile.util.StringUtils;
 import net.minecraft.client.gui.screen.inventory.ContainerScreen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
 public abstract class CellphoneScreen extends ContainerScreen<CellphoneBaseContainer> {
@@ -51,33 +61,31 @@ public abstract class CellphoneScreen extends ContainerScreen<CellphoneBaseConta
         this.accept = new TextFieldWidget(this.font, this.guiLeft + 8, this.guiTop + 41, 127, 12, new TranslationTextComponent("gui.cellphone.accept"));
         this.accept.setTextColor(-1);
         this.accept.setMaxStringLength(35);
-        //TO-DO: add config
-        this.accept.setEnabled(true);
-        this.accept.setVisible(true);
+        this.accept.setEnabled(EMConfig.client_allowTeleportPlayers);
+        this.accept.setVisible(EMConfig.client_allowTeleportPlayers);
         this.children.add(accept);
 
         this.receiver = new TextFieldWidget(this.font, this.guiLeft + 8, this.guiTop + 71, 127, 12, new TranslationTextComponent("gui.cellphone.teleport"));
         this.receiver.setTextColor(-1);
         this.receiver.setMaxStringLength(35);
-        //TO-DO: add config
-        this.receiver.setEnabled(true);
-        this.receiver.setEnabled(true);
+        this.receiver.setEnabled(EMConfig.client_allowTeleportPlayers);
+        this.receiver.setEnabled(EMConfig.client_allowTeleportPlayers);
         this.children.add(receiver);
 
         this.buttonAccept = new SmallButton(this.guiLeft + 139, this.guiTop + 40, 30, 14, new StringTextComponent("OK"), p_onPress_1_ -> acceptPlayer());
-        this.buttonAccept.visible = true;
+        this.buttonAccept.visible = EMConfig.client_allowTeleportPlayers;
         this.children.add(buttonAccept);
 
         this.buttonReceiver = new SmallButton(this.guiLeft + 139, this.guiTop + 70, 30, 14, new StringTextComponent("OK"), p_onPress_1_ -> requestPlayerTeleport());
-        this.buttonReceiver.visible = true;
+        this.buttonReceiver.visible = EMConfig.client_allowTeleportPlayers;
         this.children.add(buttonReceiver);
 
         this.buttonHome = new SmallButton(this.guiLeft + 7, this.guiTop + 89, 16, 16, new StringTextComponent("H"), p_onPress_1_ -> requestHomeTeleport());
-        this.buttonHome.visible = true;
+        this.buttonHome.visible = EMConfig.client_allowTeleportSpawn;
         this.children.add(buttonHome);
 
-        this.buttonSpawn = new SmallButton(this.guiLeft + 25, this.guiTop + 89, 16, 16, new StringTextComponent("S"), p_onPress_1_ -> requestSpawnTeleport());
-        this.buttonSpawn.visible = true;
+        this.buttonSpawn = new SmallButton(this.guiLeft + (EMConfig.client_allowTeleportHome ? 25 : 7), this.guiTop + 89, 16, 16, new StringTextComponent("S"), p_onPress_1_ -> requestSpawnTeleport());
+        this.buttonSpawn.visible = EMConfig.client_allowTeleportSpawn;
         this.children.add(buttonSpawn);
 
         this.buttonCancel = new SmallButton(this.guiLeft + 153, this.guiTop + 89, 16, 16, new StringTextComponent("X"), p_onPress_1_ -> cancelSessions());
@@ -88,17 +96,39 @@ public abstract class CellphoneScreen extends ContainerScreen<CellphoneBaseConta
     public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
         super.render(matrixStack, mouseX, mouseY, partialTicks);
 
-        this.renderHoveredTooltip(matrixStack, mouseX, mouseY);
         this.renderTextFields(matrixStack, mouseX, mouseY, partialTicks);
         this.renderButtons(matrixStack, mouseX, mouseY, partialTicks);
+        this.renderHoveredTooltip(matrixStack, mouseX, mouseY);
     }
 
     @Override
     protected void renderHoveredTooltip(MatrixStack matrixStack, int mouseX, int mouseY) {
         super.renderHoveredTooltip(matrixStack, mouseX, mouseY);
 
-        this.accept.renderToolTip(matrixStack, mouseX, mouseY);
-        this.receiver.renderToolTip(matrixStack, mouseX, mouseY);
+        List<ITextComponent> tooltips = new ArrayList<>();
+
+        if(this.buttonHome.isHovered() && EMConfig.client_allowTeleportHome) {
+            tooltips.add(new TranslationTextComponent("gui.cellphone.home"));
+            func_243308_b(matrixStack, tooltips, mouseX, mouseY);
+        }
+        if(this.buttonSpawn.isHovered() && EMConfig.client_allowTeleportSpawn) {
+            tooltips.add(new TranslationTextComponent("gui.cellphone.spawn"));
+            func_243308_b(matrixStack, tooltips, mouseX, mouseY);
+        }
+        if(this.buttonCancel.isHovered()) {
+            tooltips.add(new TranslationTextComponent("gui.cellphone.cancel"));
+            func_243308_b(matrixStack, tooltips, mouseX, mouseY);
+        }
+
+        if(this.accept.isHovered() && EMConfig.client_allowTeleportPlayers) {
+            tooltips.add(ServerUtils.setFormat(new TranslationTextComponent("gui.cellphone.prefixes.1"), TextFormatting.BOLD));
+            tooltips.add(new TranslationTextComponent("gui.cellphone.prefixes.2"));
+            tooltips.add(new TranslationTextComponent("gui.cellphone.prefixes.3"));
+            tooltips.add(new TranslationTextComponent("gui.cellphone.prefixes.4"));
+            tooltips.add(new TranslationTextComponent("gui.cellphone.prefixes.5"));
+            tooltips.add(new TranslationTextComponent("gui.cellphone.prefixes.6"));
+            func_243308_b(matrixStack, tooltips, mouseX, mouseY);
+        }
     }
 
     @Override
@@ -109,40 +139,49 @@ public abstract class CellphoneScreen extends ContainerScreen<CellphoneBaseConta
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        this.accept.mouseClicked(mouseX, mouseY, button);
-        this.receiver.mouseClicked(mouseX, mouseY, button);
+        if(EMConfig.client_allowTeleportPlayers) {
+            this.accept.mouseClicked(mouseX, mouseY, button);
+            this.receiver.mouseClicked(mouseX, mouseY, button);
+        }
+
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 256) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             this.minecraft.player.closeScreen();
+            return true;
         }
 
-        if(this.accept.isFocused()) {
-            if(keyCode == 13) {
+        if(this.accept.isFocused() && EMConfig.client_allowTeleportPlayers) {
+            if(keyCode == GLFW.GLFW_KEY_ENTER) {
                 acceptPlayer();
             } else {
                 this.accept.keyPressed(keyCode, scanCode, modifiers);
             }
+            return true;
         }
 
-        if(this.receiver.isFocused()) {
+        if(this.receiver.isFocused() && EMConfig.client_allowTeleportPlayers) {
             if(keyCode == 13) {
                 requestPlayerTeleport();
             } else {
                 this.receiver.keyPressed(keyCode, scanCode, modifiers);
             }
+            return true;
         }
 
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return false;
     }
 
     @Override
     protected void drawGuiContainerForegroundLayer(MatrixStack matrixStack, int mouseX, int mouseY) {
-        this.font.drawText(matrixStack, new TranslationTextComponent("gui.cellphone.accept"),(float) 8, (float) 30, 4210752);
-        this.font.drawText(matrixStack, new TranslationTextComponent("gui.cellphone.teleport"),(float) 8, (float) 60, 4210752);
+        if(EMConfig.client_allowTeleportPlayers) {
+            this.font.drawText(matrixStack, new TranslationTextComponent("gui.cellphone.accept"), (float) 8, (float) 30, 4210752);
+            this.font.drawText(matrixStack, new TranslationTextComponent("gui.cellphone.teleport"), (float) 8, (float) 60, 4210752);
+        }
+
         this.font.drawText(matrixStack, new TranslationTextComponent("container.inventory"), 8, this.ySize - 93, 4210752);
     }
 
@@ -154,15 +193,26 @@ public abstract class CellphoneScreen extends ContainerScreen<CellphoneBaseConta
     }
 
     public void renderTextFields(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-        this.accept.render(matrixStack, mouseX, mouseY, partialTicks);
-        this.receiver.render(matrixStack, mouseX, mouseY, partialTicks);
+        if(EMConfig.client_allowTeleportPlayers) {
+            this.accept.render(matrixStack, mouseX, mouseY, partialTicks);
+            this.receiver.render(matrixStack, mouseX, mouseY, partialTicks);
+        }
     }
 
     public void renderButtons(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-        buttonAccept.render(matrixStack, mouseX, mouseY, partialTicks);
-        buttonReceiver.render(matrixStack, mouseX, mouseY, partialTicks);
-        buttonHome.render(matrixStack, mouseX, mouseY, partialTicks);
-        buttonSpawn.render(matrixStack, mouseX, mouseY, partialTicks);
+        if(EMConfig.client_allowTeleportPlayers) {
+            buttonAccept.render(matrixStack, mouseX, mouseY, partialTicks);
+            buttonReceiver.render(matrixStack, mouseX, mouseY, partialTicks);
+        }
+
+        if(EMConfig.client_allowTeleportHome) {
+            buttonHome.render(matrixStack, mouseX, mouseY, partialTicks);
+        }
+
+        if(EMConfig.client_allowTeleportSpawn) {
+            buttonSpawn.render(matrixStack, mouseX, mouseY, partialTicks);
+        }
+
         buttonCancel.render(matrixStack, mouseX, mouseY, partialTicks);
     }
 
@@ -181,14 +231,18 @@ public abstract class CellphoneScreen extends ContainerScreen<CellphoneBaseConta
     protected void requestPlayerTeleport() {
         if(!this.receiver.getText().equals("") && this.hasEnoughFuel()) {
             this.minecraft.player.closeScreen();
-            //PacketHandler.INSTANCE.sendToServer(new MessageCellphonePlayer(this.minecraft.player.getUniqueID().toString(), this.receiver.getText()));
+            PacketHandler.INSTANCE.sendToServer(new MessageCellphonePlayer(this.minecraft.player.getUniqueID().toString(), this.receiver.getText()));
+        } else {
+            super.minecraft.player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.cancel.nofuel"), TextFormatting.RED), super.minecraft.player.getUniqueID());
         }
     }
 
     protected void requestSpawnTeleport() {
-        if (this.hasEnoughFuel()) {
+        if (hasEnoughFuel()) {
             this.minecraft.player.closeScreen();
             PacketHandler.INSTANCE.sendToServer(new MessageCellphoneSpawn(this.minecraft.player.getUniqueID().toString()));
+        } else {
+            super.minecraft.player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.cancel.nofuel"), TextFormatting.RED), super.minecraft.player.getUniqueID());
         }
     }
 
@@ -196,6 +250,8 @@ public abstract class CellphoneScreen extends ContainerScreen<CellphoneBaseConta
         if (this.hasEnoughFuel()) {
             this.minecraft.player.closeScreen();
             PacketHandler.INSTANCE.sendToServer(new MessageCellphoneHome(this.minecraft.player.getUniqueID().toString()));
+        } else {
+            super.minecraft.player.sendMessage(ServerUtils.setColor(new TranslationTextComponent("chat.cellphone.cancel.nofuel"), TextFormatting.RED), super.minecraft.player.getUniqueID());
         }
     }
 

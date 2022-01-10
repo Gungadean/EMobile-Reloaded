@@ -14,8 +14,7 @@ import net.minecraft.network.PacketBuffer;
 
 public class CellphoneBaseContainer extends Container {
 
-    protected CellphoneItemStackHandler itemStackHandler = null;
-    protected ItemStack cellphone = null;
+    public ItemStack cellphone = null;
 
     int xOffset = 8;
     int yOffset = 121;
@@ -78,7 +77,7 @@ public class CellphoneBaseContainer extends Container {
             if(currentItem.isEmpty()) {
                 slot.putStack(ItemStack.EMPTY);
             } else {
-                slot.onSlotChanged();;
+                slot.onSlotChanged();
             }
         }
 
